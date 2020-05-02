@@ -1,7 +1,9 @@
 import argparse
 from cpu import CPU
 from rom import Rom
-from instruction import Instruction, LDAInstruction
+from memory import Ram
+from ppu import PPU
+
 
 # set up command line argument parser
 parser = argparse.ArgumentParser(description='NES emulator')
@@ -16,7 +18,13 @@ with open(args.rom_path, "rb") as file:
     rom_content = file.read()
 rom = Rom(rom_content)
 
+# create ram
+ram = Ram()
+
+# create ppu
+ppu = PPU()
+
 # create cpu
-cpu = CPU()
+cpu = CPU(ram, ppu)
 cpu.start_up()
 cpu.run_rom(rom)

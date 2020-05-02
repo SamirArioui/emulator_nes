@@ -26,21 +26,35 @@ class Instruction(ABC):
         print(self.__str__())
 
 
-class LDAInstruction(Instruction):
+# data instructions
+class LdaImmInstruction(Instruction):
     instruction_length = 2
     identifier_byte = bytes.fromhex("A9")
 
-    def execute(self):
-        super().execute()
+    def execute(self, cpu, data_bytes):
+        # load value into accumulator register
+        cpu.a_reg = data_bytes[0]
 
 
+class StaAbsInstruction(Instruction):
+    instruction_length = 3
+    identifier_byte = bytes.fromhex("8D")
+
+    def execute(self, cpu, data_bytes):
+        # take value from a_reg and put it memory
+        memory_address = int.from_bytes(data_bytes, byteorder="little")
+        val_to_store = cpu.a_reg
+        memory_owner = cpu.get_memory_owner(memory_address)
+        cpu.ram.set_byte(memory_address, val_to_store)
+        x = 1
+
+
+# status register instruction
 class SEIInstruction(Instruction):
     instruction_length = 1
     identifier_byte = bytes.fromhex("78")
 
-    def execute(self, cpu):
-        super().execute()
-
+    def execute(self, cpu, data_bytes):
         # set the interrupt flag to 1
         cpu.status_reg.interrupt_bit = True
 
@@ -49,5 +63,6 @@ class CLDInstruction(Instruction):
     instruction_length = 1
     identifier_byte = bytes.fromhex("D8")
 
-    def execute(self):
-        super().execute()
+    def execute(self, cpu, data_bytes):
+        # set the decimal flag to 0
+        cpu.status_reg.decimal_bit = False

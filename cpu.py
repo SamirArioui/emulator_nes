@@ -1,11 +1,22 @@
-from instruction import LDAInstruction, SEIInstruction, CLDInstruction
+from instruction import LdaImmInstruction, SEIInstruction, CLDInstruction, StaAbsInstruction
 from rom import Rom
+from memory import Ram
+from ppu import PPU
 from collections import defaultdict
 from status import Status
 
+RAM_START_INCLUSIVE = int.from_bytes(bytes.fromhex('0000'), byteorder="big")
+RAM_END_INCLUSIVE = int.from_bytes(bytes.fromhex('1FFF'), byteorder="big")
+
+PPU_START_INCLUSIVE = int.from_bytes(bytes.fromhex('2000'), byteorder="big")
+PPU_END_INCLUSIVE = int.from_bytes(bytes.fromhex('2007'), byteorder="big")
+
 
 class CPU:
-    def __init__(self):
+    def __init__(self, ram: Ram, ppu: PPU):
+        self.ram = ram
+        self.ppu = ppu
+
         # status registers : store a single byte
         self.status_reg = None  # type: Status
 
@@ -22,9 +33,10 @@ class CPU:
         self.rom = None
         self.running = True
         self.instructions = [
-            LDAInstruction(),
+            LdaImmInstruction(),
             SEIInstruction(),
-            CLDInstruction()
+            CLDInstruction(),
+            StaAbsInstruction(),
         ]
         self.instruction_mapping = defaultdict()
         for instruction in self.instructions:
@@ -51,6 +63,15 @@ class CPU:
         self.a_reg = 0
 
         # TODO implement memory sets
+    def get_memory_owner(self, location: int):
+        """
+        return rhe owner memory location
+        """
+        if RAM_START_INCLUSIVE <= location <= RAM_END_INCLUSIVE:
+            return self.ram
+        elif PPU_START_INCLUSIVE <= location <= PPU_END_INCLUSIVE:
+            # pass off to the ppu register manager
+            return self.ppu
 
     def run_rom(self, rom: Rom):
         # load rom
@@ -67,7 +88,11 @@ class CPU:
             if instruction is None:
                 raise Exception("Instruction does not exist")
 
+            # get the correct amount of data bytes
+            num_data_bytes = instruction.instruction_length - 1
+            data_bytes = rom.get_bytes(self.pc_reg + 1, num_data_bytes)
+
             # we have a valid instruction
-            instruction.execute(self)
+            instruction.execute(self, data_bytes)
 
             self.pc_reg += instruction.instruction_length
