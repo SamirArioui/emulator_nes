@@ -1,7 +1,12 @@
+from typing import List
+
 KB_BLOCK = 1024
 
 
-class Rom:
+class Rom(object):
+    memory_start_location = 0x4020
+    memory_end_location = 0xFFFF
+
     def __init__(self, rom_bytes: bytes):
         self.header_size = 16
         # TODO: unhardcode pull from header
@@ -12,8 +17,11 @@ class Rom:
         self.rom_bytes = rom_bytes
         self.prg_bytes = rom_bytes[self.header_size:self.header_size + 16 * KB_BLOCK * self.num_prg_blocks]
 
-    def get_bytes(self, position: int, size: int = 1) -> bytes:
+    def get_memory(self) -> List[bytes]:
+        return self.rom_bytes
+
+    def get(self, position: int, size: int = 1) -> bytes:
         """
-        get byte at a given position and size
+        get bytes at given position
         """
-        return self.rom_bytes[position:position + size]
+        return self.get_memory()[position:position + size]

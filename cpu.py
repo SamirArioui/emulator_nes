@@ -1,21 +1,22 @@
 from instruction import LdaImmInstruction, SEIInstruction, CLDInstruction, StaAbsInstruction
 from rom import Rom
-from memory import Ram
+from ram import Ram
 from ppu import PPU
 from collections import defaultdict
 from status import Status
-
-RAM_START_INCLUSIVE = int.from_bytes(bytes.fromhex('0000'), byteorder="big")
-RAM_END_INCLUSIVE = int.from_bytes(bytes.fromhex('1FFF'), byteorder="big")
-
-PPU_START_INCLUSIVE = int.from_bytes(bytes.fromhex('2000'), byteorder="big")
-PPU_END_INCLUSIVE = int.from_bytes(bytes.fromhex('2007'), byteorder="big")
+from memory_owner import MemoryOwnerMixin
+from typing import List
 
 
 class CPU:
     def __init__(self, ram: Ram, ppu: PPU):
         self.ram = ram
         self.ppu = ppu
+
+        self.memory_owners = [  # type: List[MemoryOwnerMixin]
+            self.ram,
+            self.ppu,
+        ]
 
         # status registers : store a single byte
         self.status_reg = None  # type: Status
@@ -56,22 +57,24 @@ class CPU:
         # TODO hex vs binary
         self.pc_reg = 0
         self.status_reg = Status()
-        self.sp_reg = bytes.fromhex('FD')
+        self.sp_reg = 0xFD
 
         self.x_reg = 0
         self.y_reg = 0
         self.a_reg = 0
 
         # TODO implement memory sets
-    def get_memory_owner(self, location: int):
+    def get_memory_owner(self, location: int) -> MemoryOwnerMixin:
         """
-        return rhe owner memory location
+        return the memory owner
         """
-        if RAM_START_INCLUSIVE <= location <= RAM_END_INCLUSIVE:
-            return self.ram
-        elif PPU_START_INCLUSIVE <= location <= PPU_END_INCLUSIVE:
-            # pass off to the ppu register manager
-            return self.ppu
+        # check if rom
+        if self.rom.memory_start_location <= location <= self.rom.memory_end_location:
+            return self.rom
+        for memory_owner in self.memory_owners:
+            if memory_owner.memory_start_location <= location <= memory_owner.memory_end_location:
+                return memory_owner
+        raise Exception("Can't find memory owner")
 
     def run_rom(self, rom: Rom):
         # load rom
@@ -81,16 +84,16 @@ class CPU:
         # run program
         while self.running:
             # get the current byte at program counter
-            identifier_byte = self.rom.get_bytes(self.pc_reg)
+            identifier_byte = self.rom.get(self.pc_reg)
 
             # turn the byte into Instruction
             instruction = self.instruction_mapping.get(identifier_byte, None)
             if instruction is None:
-                raise Exception("Instruction does not exist")
+                raise Exception("Instruction {} does not exist".format(identifier_byte))
 
             # get the correct amount of data bytes
             num_data_bytes = instruction.instruction_length - 1
-            data_bytes = rom.get_bytes(self.pc_reg + 1, num_data_bytes)
+            data_bytes = rom.get(self.pc_reg + 1, num_data_bytes)
 
             # we have a valid instruction
             instruction.execute(self, data_bytes)

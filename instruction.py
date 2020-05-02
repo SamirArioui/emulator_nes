@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 class Instruction(ABC):
@@ -21,8 +21,8 @@ class Instruction(ABC):
     def instruction_length(self):
         return 1
 
-    @abstractmethod
-    def execute(self, *args):
+    def execute(self, cpu, data_bytes):
+        # TODO turn this into somathing that can change the byte into correct format
         print(self.__str__())
 
 
@@ -45,8 +45,7 @@ class StaAbsInstruction(Instruction):
         memory_address = int.from_bytes(data_bytes, byteorder="little")
         val_to_store = cpu.a_reg
         memory_owner = cpu.get_memory_owner(memory_address)
-        cpu.ram.set_byte(memory_address, val_to_store)
-        x = 1
+        memory_owner.set(memory_address, val_to_store)
 
 
 # status register instruction

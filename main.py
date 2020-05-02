@@ -1,7 +1,7 @@
 import argparse
 from cpu import CPU
 from rom import Rom
-from memory import Ram
+from ram import Ram
 from ppu import PPU
 
 
