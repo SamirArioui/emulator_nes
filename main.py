@@ -18,4 +18,5 @@ rom = Rom(rom_content)
 
 # create cpu
 cpu = CPU()
+cpu.start_up()
 cpu.run_rom(rom)

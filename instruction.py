@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
 
 class Instruction(ABC):
@@ -22,7 +22,7 @@ class Instruction(ABC):
         return 1
 
     @abstractmethod
-    def execute(self):
+    def execute(self, *args):
         print(self.__str__())
 
 
@@ -38,8 +38,11 @@ class SEIInstruction(Instruction):
     instruction_length = 1
     identifier_byte = bytes.fromhex("78")
 
-    def execute(self):
+    def execute(self, cpu):
         super().execute()
+
+        # set the interrupt flag to 1
+        cpu.status_reg.interrupt_bit = True
 
 
 class CLDInstruction(Instruction):
